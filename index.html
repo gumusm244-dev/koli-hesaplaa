@@ -6,7 +6,7 @@
     <title>Tavukçu Halis - Koli Barkod & Ağırlık Takip</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#d90429">
+    <meta name="theme-color" content="#d90429">
 
     <style>
         :root {
@@ -20,12 +20,6 @@
         }
 
         body {
-            <!-- Açılış Ekranı (Splash Screen) -->
-<div id="splash-screen" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #1a1a1a; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; transition: opacity 0.5s ease;">
-  <img src="logo.jpg" alt="Halis Et Logo" style="width: 200px; height: auto; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
-  <p style="color: white; margin-top: 20px; font-family: sans-serif; font-size: 18px; font-weight: bold;">Tavukçu Halis</p>
-</div>
-
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
             padding: 12px;
@@ -134,6 +128,7 @@
             display: flex;
             gap: 8px;
             margin-top: 10px;
+            flex-wrap: wrap;
         }
 
         .btn {
@@ -164,6 +159,18 @@
 
         .btn-secondary {
             background: #8d99ae;
+            color: white;
+            flex: 1;
+        }
+
+        .btn-whatsapp {
+            background: #25D366;
+            color: white;
+            flex: 1;
+        }
+
+        .btn-excel {
+            background: #1D6F42;
             color: white;
             flex: 1;
         }
@@ -308,6 +315,12 @@
 </head>
 <body>
 
+    <!-- Açılış Ekranı (Splash Screen) -->
+    <div id="splash-screen" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #1a1a1a; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; transition: opacity 0.5s ease;">
+        <img src="logo.jpg" alt="Halis Et Logo" style="width: 200px; height: auto; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+        <p style="color: white; margin-top: 20px; font-family: sans-serif; font-size: 18px; font-weight: bold;">Tavukçu Halis</p>
+    </div>
+
     <div class="header">
         <div>
             <h1>Tavukçu Halis</h1>
@@ -346,6 +359,14 @@
                 </button>
                 <button class="btn btn-danger" onclick="clearAll()">
                     🗑️ Hepsini Sil
+                </button>
+            </div>
+            <div class="btn-group" style="margin-top: 8px;">
+                <button class="btn btn-whatsapp" onclick="shareWhatsAppSummary()">
+                    📲 WhatsApp Gönder
+                </button>
+                <button class="btn btn-excel" onclick="exportToCSV()">
+                    📊 Excel İndir
                 </button>
             </div>
         </div>
@@ -451,6 +472,10 @@
             } catch (e) {
                 console.log("Ses çalınamadı", e);
             }
+
+            if ("vibrate" in navigator) {
+                navigator.vibrate(100);
+            }
         }
 
         let defaultProducts = {
@@ -468,7 +493,7 @@
         document.getElementById("defaultSktDate").value = today.toISOString().split('T')[0];
 
         let html5QrcodeScanner = null;
-        let scannedBarcodesSet = new Set(); // Mükerrer barkod engelleme kümesi
+        let scannedBarcodesSet = new Set();
 
         function switchTab(tab) {
             if (tab === 'paste') {
@@ -477,7 +502,7 @@
                 document.getElementById('tabPasteBtn').classList.add('active');
                 document.getElementById('tabCamBtn').classList.remove('active');
                 if (html5QrcodeScanner) {
-                    html5QrcodeScanner.stop().catch(()=>{});
+                    html5QrcodeScanner.stop().then(() => html5QrcodeScanner.clear()).catch(()=>{});
                 }
             } else {
                 document.getElementById('pasteSection').style.display = 'none';
@@ -495,13 +520,12 @@
                 { facingMode: "environment" },
                 { fps: 10, qrbox: { width: 250, height: 150 } },
                 (decodedText) => {
-                    let match = decodedText.match(/\b28\d{11}\b/);
+                    let match = decodedText.match(/\b(27|28|29)\d{11}\b/);
                     let barcode = match ? match[0] : decodedText;
 
-                    // Eğer bu barkod daha önce taranmadıysa ekle ve bip çal
                     if (!scannedBarcodesSet.has(barcode)) {
                         scannedBarcodesSet.add(barcode);
-                        playBeepSound(); // Sadece ilk okumada bip çalar
+                        playBeepSound();
                         
                         let textarea = document.getElementById("barcodeInput");
                         textarea.value += decodedText + "\n";
@@ -512,6 +536,18 @@
             ).catch(err => {
                 alert("Kamera erişim izni verilemedi veya tarayıcı desteklemiyor.");
             });
+        }
+
+        function parseGS1Skt(rawLine) {
+            // GS1-128 standartlarında SKT kedi kollarını tarar (AI 15 veya 17 -> YYMMDD)
+            let match = rawLine.match(/\b(15|17)(\d{2})(\d{2})(\d{2})\b/);
+            if (match) {
+                let yy = match[2];
+                let mm = match[3];
+                let dd = match[4];
+                return `${dd}.${mm}.20${yy}`;
+            }
+            return null;
         }
 
         function processBarcodes() {
@@ -526,14 +562,14 @@
             let defaultSkt = document.getElementById("defaultSktDate").value;
             let formattedDefaultSkt = defaultSkt ? formatDate(defaultSkt) : "Belirtilmedi";
 
-            let seenInBatch = new Set(); // Yapıştırma/Metin içindeki mükerrerleri filtrelemek için
+            let seenInBatch = new Set();
 
             lines.forEach(line => {
-                let match = line.match(/\b28\d{11}\b/);
+                // 27, 28, 29 ile başlayan 13 haneli tartılı barkodlar
+                let match = line.match(/\b(27|28|29)\d{11}\b/);
                 if (match) {
                     let barcode = match[0];
 
-                    // Üst üste/Mükerrer okutulan aynı barkodu tek say
                     if (!seenInBatch.has(barcode)) {
                         seenInBatch.add(barcode);
                         scannedBarcodesSet.add(barcode);
@@ -542,6 +578,8 @@
                         let weightGrams = parseInt(barcode.substring(7, 12));
                         let weightKg = weightGrams / 1000.0;
 
+                        // Eğer barkod satırında GS1 SKT bilgisi de varsa onu al, yoksa varsayılan tarihi kullan
+                        let detectedSkt = parseGS1Skt(line) || formattedDefaultSkt;
                         let productName = productCatalog[plu] || ("Ürün #" + plu);
 
                         totalWeight += weightKg;
@@ -552,7 +590,7 @@
                                 name: productName,
                                 count: 0,
                                 weight: 0,
-                                skt: formattedDefaultSkt
+                                skt: detectedSkt
                             };
                         }
                         productSummary[plu].count++;
@@ -562,7 +600,7 @@
                             barcode: barcode,
                             name: productName,
                             weight: weightKg,
-                            skt: formattedDefaultSkt
+                            skt: detectedSkt
                         });
                     }
                 }
@@ -574,7 +612,7 @@
 
             let summaryHtml = "";
             if (Object.keys(productSummary).length === 0) {
-                summaryHtml = `<tr><td colspan="4" style="text-align:center; color:#adb5bd;">Ağırlık içeren geçerli 28'li EAN-13 barkodu bulunamadı.</td></tr>`;
+                summaryHtml = `<tr><td colspan="4" style="text-align:center; color:#adb5bd;">Ağırlık içeren geçerli (27/28/29) EAN-13 barkodu bulunamadı.</td></tr>`;
             } else {
                 for (let plu in productSummary) {
                     let p = productSummary[plu];
@@ -609,9 +647,63 @@
             document.getElementById("detailTableBody").innerHTML = detailHtml;
         }
 
+        function shareWhatsAppSummary() {
+            let count = document.getElementById("kpiCount").innerText;
+            let totalKg = document.getElementById("kpiTotalKg").innerText;
+            let supplier = document.getElementById("supplierName").value || "Tedarikçi";
+
+            if (parseInt(count) === 0) {
+                alert("Henüz okutulmuş koli verisi yok!");
+                return;
+            }
+
+            let text = `📦 *${supplier} Koli / Mal Kabul Özeti*\n`;
+            text += `------------------------------------\n`;
+            text += `🔹 Toplam Koli: *${count} adet*\n`;
+            text += `⚖️ Toplam Net Ağırlık: *${totalKg}*\n`;
+            text += `📅 Tarih: ${new Date().toLocaleDateString('tr-TR')}\n\n`;
+            text += `*Tavukçu Halis Takip Sistemi*`;
+
+            let url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+            window.open(url, '_blank');
+        }
+
+        function exportToCSV() {
+            let count = document.getElementById("kpiCount").innerText;
+            if (parseInt(count) === 0) {
+                alert("İndirilecek koli verisi bulunamadı!");
+                return;
+            }
+
+            let rows = [["Sira No", "Barkod", "Urun Adi", "SKT", "Agirlik (Kg)"]];
+            let tableRows = document.querySelectorAll("#detailTableBody tr");
+            
+            tableRows.forEach(tr => {
+                let cols = tr.querySelectorAll("td");
+                if (cols.length >= 5) {
+                    rows.push([
+                        cols[0].innerText,
+                        cols[1].innerText,
+                        cols[2].innerText,
+                        cols[3].innerText,
+                        cols[4].innerText.replace(" kg", "")
+                    ]);
+                }
+            });
+
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF" + rows.map(e => e.join(";")).join("\n");
+            let encodedUri = encodeURI(csvContent);
+            let link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Koli_Listesi_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
         function clearAll() {
             document.getElementById("barcodeInput").value = "";
-            scannedBarcodesSet.clear(); // Hafızadaki okunan barkodları sıfırla
+            scannedBarcodesSet.clear();
             document.getElementById("kpiCount").innerText = "0";
             document.getElementById("kpiTypes").innerText = "0";
             document.getElementById("kpiTotalKg").innerText = "0.000 kg";
@@ -670,18 +762,16 @@
             closeProductModal();
             processBarcodes();
         }
-    </script>
-    <script>
-  window.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-      const splash = document.getElementById('splash-screen');
-      if (splash) {
-        splash.style.opacity = '0';
-        setTimeout(() => splash.style.display = 'none', 500);
-      }
-    }, 3000); // 3 saniye logo görünür
-  });
-</script>
 
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                const splash = document.getElementById('splash-screen');
+                if (splash) {
+                    splash.style.opacity = '0';
+                    setTimeout(() => splash.style.display = 'none', 500);
+                }
+            }, 3000);
+        });
+    </script>
 </body>
 </html>
