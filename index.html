@@ -487,6 +487,7 @@
         };
 
         let productCatalog = JSON.parse(localStorage.getItem("halis_product_catalog")) || defaultProducts;
+        let currentProductSummary = {}; // WhatsApp paylaşımı için hesaplanan veriyi tutar
 
         const today = new Date();
         today.setDate(today.getDate() + 10);
@@ -539,7 +540,6 @@
         }
 
         function parseGS1Skt(rawLine) {
-            // GS1-128 standartlarında SKT kedi kollarını tarar (AI 15 veya 17 -> YYMMDD)
             let match = rawLine.match(/\b(15|17)(\d{2})(\d{2})(\d{2})\b/);
             if (match) {
                 let yy = match[2];
@@ -565,7 +565,6 @@
             let seenInBatch = new Set();
 
             lines.forEach(line => {
-                // 27, 28, 29 ile başlayan 13 haneli tartılı barkodlar
                 let match = line.match(/\b(27|28|29)\d{11}\b/);
                 if (match) {
                     let barcode = match[0];
@@ -578,7 +577,6 @@
                         let weightGrams = parseInt(barcode.substring(7, 12));
                         let weightKg = weightGrams / 1000.0;
 
-                        // Eğer barkod satırında GS1 SKT bilgisi de varsa onu al, yoksa varsayılan tarihi kullan
                         let detectedSkt = parseGS1Skt(line) || formattedDefaultSkt;
                         let productName = productCatalog[plu] || ("Ürün #" + plu);
 
@@ -605,6 +603,8 @@
                     }
                 }
             });
+
+            currentProductSummary = productSummary; // Global değişkeni güncelle
 
             document.getElementById("kpiCount").innerText = totalCount;
             document.getElementById("kpiTypes").innerText = Object.keys(productSummary).length;
@@ -650,18 +650,25 @@
         function shareWhatsAppSummary() {
             let count = document.getElementById("kpiCount").innerText;
             let totalKg = document.getElementById("kpiTotalKg").innerText;
-            let supplier = document.getElementById("supplierName").value || "Tedarikçi";
 
             if (parseInt(count) === 0) {
                 alert("Henüz okutulmuş koli verisi yok!");
                 return;
             }
 
-            let text = `📦 *${supplier} Koli / Mal Kabul Özeti*\n`;
+            let text = `📦 *Gelen Mal*\n`;
+            text += `📅 Tarih: ${new Date().toLocaleDateString('tr-TR')}\n`;
             text += `------------------------------------\n`;
-            text += `🔹 Toplam Koli: *${count} adet*\n`;
-            text += `⚖️ Toplam Net Ağırlık: *${totalKg}*\n`;
-            text += `📅 Tarih: ${new Date().toLocaleDateString('tr-TR')}\n\n`;
+
+            // Her ürünü koli sayısı ve kg olarak detaylandır
+            for (let plu in currentProductSummary) {
+                let p = currentProductSummary[plu];
+                text += `• *${p.name}*: ${p.count} Koli | *${p.weight.toFixed(3)} kg*\n`;
+            }
+
+            text += `------------------------------------\n`;
+            text += `🔹 *Toplam Koli:* ${count} adet\n`;
+            text += `⚖️ *Toplam Net Ağırlık:* ${totalKg}\n\n`;
             text += `*Tavukçu Halis Takip Sistemi*`;
 
             let url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
@@ -704,6 +711,7 @@
         function clearAll() {
             document.getElementById("barcodeInput").value = "";
             scannedBarcodesSet.clear();
+            currentProductSummary = {};
             document.getElementById("kpiCount").innerText = "0";
             document.getElementById("kpiTypes").innerText = "0";
             document.getElementById("kpiTotalKg").innerText = "0.000 kg";
