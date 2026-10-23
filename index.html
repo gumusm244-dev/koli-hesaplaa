@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
@@ -260,101 +260,5 @@
         }
 
         function onScanSuccess(decodedText, decodedResult) {
-            document.getElementById('scan-result').value = decodedText;
-            let weight = extractWeight(decodedText);
-            
-            koliList.push({
-                code: decodedText,
-                weight: weight || 0,
-                time: new Date().toLocaleTimeString('tr-TR')
-            });
-
-            alert(`Koli Eklendi! Ağırlık: ${weight || 'Tespit Edilemedi'} KG`);
-        }
-
-        function extractWeight(text) {
-            let matches = text.match(/(\d+[.,]\d+)/);
-            if (matches) {
-                return parseFloat(matches[0].replace(',', '.'));
-            }
-            return null;
-        }
-
-        function startScanner() {
-            try {
-                if (!html5QrcodeScanner && typeof Html5QrcodeScanner !== 'undefined') {
-                    html5QrcodeScanner = new Html5QrcodeScanner(
-                        "reader", { fps: 10, qrbox: 250 }
-                    );
-                    html5QrcodeScanner.render(onScanSuccess);
-                }
-            } catch (e) {
-                console.log("Kamera hatası:", e);
-            }
-        }
-
-        function stopScanner() {
-            if (html5QrcodeScanner) {
-                html5QrcodeScanner.clear().catch(error => console.error(error));
-                html5QrcodeScanner = null;
-            }
-        }
-
-        function addManual() {
-            let name = document.getElementById('manual-name').value;
-            let weight = parseFloat(document.getElementById('manual-weight').value);
-
-            if (!weight) {
-                alert('Lütfen geçerli bir ağırlık girin.');
-                return;
-            }
-
-            koliList.push({
-                code: name || 'Manuel Koli',
-                weight: weight,
-                time: new Date().toLocaleTimeString('tr-TR')
-            });
-
-            document.getElementById('manual-name').value = '';
-            document.getElementById('manual-weight').value = '';
-            alert('Koli eklendi!');
-        }
-
-        function updateTable() {
-            let tbody = document.getElementById('koli-table-body');
-            tbody.innerHTML = '';
-            let total = 0;
-
-            koliList.forEach((item, index) => {
-                total += item.weight;
-                let tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${index + 1}</td>
-                    <td>${item.code}<br><small style="color:#6c757d">${item.time}</small></td>
-                    <td><b>${item.weight.toFixed(2)}</b></td>
-                    <td><button onclick="deleteItem(${index})" style="background:#d90429;color:white;border:none;padding:4px 8px;border-radius:4px;">Sil</button></td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            document.getElementById('total-weight').innerText = total.toFixed(2);
-        }
-
-        function deleteItem(index) {
-            koliList.splice(index, 1);
-            updateTable();
-        }
-
-        function clearList() {
-            if (confirm('Tüm listeyi silmek istediğinize emin misiniz?')) {
-                koliList = [];
-                updateTable();
-            }
-        }
-
-        window.onload = () => {
-            startScanner();
-        };
-    </script>
-</body>
-</html>
+            document.
+           
