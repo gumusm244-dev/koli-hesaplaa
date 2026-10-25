@@ -772,6 +772,7 @@
         }
 
         window.addEventListener('DOMContentLoaded', () => {
+            // Açılış ekranını kapatma zamanlayıcısı
             setTimeout(() => {
                 const splash = document.getElementById('splash-screen');
                 if (splash) {
@@ -779,6 +780,15 @@
                     setTimeout(() => splash.style.display = 'none', 500);
                 }
             }, 3000);
+
+            // Chrome PWA Yükleme Desteği (Service Worker Entegrasyonu)
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('data:text/javascript;charset=utf-8,' + encodeURIComponent(`
+                    self.addEventListener('install', (e) => self.skipWaiting());
+                    self.addEventListener('activate', (e) => self.clients.claim());
+                    self.addEventListener('fetch', (e) => e.respondWith(fetch(e.request)));
+                `)).catch(err => console.log('SW Hata:', err));
+            }
         });
     </script>
 </body>
