@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tavukçu Halis - Koli Barkod & Ağırlık Takip</title>
+    
+    <!-- PWA & Web App Ayarları -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#d90429">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Tavukçu Halis">
+
+    <!-- iOS / Safari Desteği -->
+    <link rel="apple-touch-icon" href="./logo.jpg">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Tavukçu Halis">
+
+    <script src="https://unpkg.com/html5-qrcode"></script>
+
+    <style>
+        :root {
+            --primary: #d90429;
+            --primary-dark: #ef233c;
+            --secondary: #2b2d42;
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --text: #2b2d42;
+            --border: #e9ecef;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 12px;
+            background-color: var(--bg);
+            color: var(--text);
+            padding-bottom: 40px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #d90429, #8d99ae);
+            color: white;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(217, 4, 41, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        .header p {
+            margin: 4px 0 0 0;
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border: 1px solid var(--border);
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid var(--border);
+            background: #edf2f4;
+            color: var(--secondary);
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .textarea-wrapper {
+            position: relative;
+        }
+
+        textarea {
+            width: 100%;
+            height: 140px;
+            border: 1px solid #ced4da;
+            border-radius: 8px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            box-sizing: border-box;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .clear-icon-btn {
+            position: absolute;
+            right: 10px;
+            bottom: 12px;
+            background: #e9ecef;
+            border: none;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #6c757d;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: opacity 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            flex: 2;
+        }
+
+        .btn-danger {
+            background: #d90429;
+            color: white;
+            flex: 1;
+        }
+
+        .btn-secondary {
+            background: #8d99ae;
+            color: white;
+            flex: 1;
+        }
+
+        .btn-whatsapp {
+            background: #25D366;
+            color: white;
+            flex: 1;
+        }
+
+        .btn-save {
+            background: #2b2d42;
+            color: white;
+            flex: 1;
+        }
+
+        .btn:active {
+            opacity: 0.85;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .kpi-card {
+            background: var(--card-bg);
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .kpi-card.total {
+            grid-column: span 2;
+            background: #d8f3dc;
+            border-color: #b7e4c7;
+            color: #1b4332;
+        }
+
+        .kpi-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+            opacity: 0.8;
+        }
+
+        .kpi-value {
+            font-size: 1.4rem;
+            font-weight: 800;
+        }
+
+        .kpi-card.total .kpi-value {
+            font-size: 1.8rem;
+            color: #2d6a4f;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+        }
+
+        th, td {
+            padding: 8px 6px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background-color: #f1f3f5;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .badge {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        #reader {
+            width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            display: none;
+        }
+
+        .inputs-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 0.85rem;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .product-edit-item {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .product-edit-item input {
+            padding: 6px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+
+        .plu-input { width: 70px; }
+        .name-input { flex: 1; }
+
+        .saved-card {
+            border-left: 4px solid var(--primary);
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Açılış Ekranı (Splash Screen) -->
+    <div id="splash-screen" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #1a1a1a; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; transition: opacity 0.5s ease;">
+        <img src="logo.jpg" alt="Halis Et Logo" style="width: 200px; height: auto; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+        <p style="color: white; margin-top: 20px; font-family: sans-serif; font-size: 18px; font-weight: bold;">Tavukçu Halis</p>
+    </div>
+
+    <div class="header">
+        <div>
+            <h1>Tavukçu Halis</h1>
+            <p>Koli Ağırlık & SKT Takip Sistemi</p>
+        </div>
+        <button class="btn btn-secondary" style="padding: 6px 10px; font-size:0.75rem;" onclick="openProductModal()">
+            ⚙️ Kodlar
+        </button>
+    </div>
+
+    <div class="inputs-row">
+        <div class="input-group">
+            <label>Varsayılan SKT Tarihi:</label>
+            <input type="date" id="defaultSktDate">
+        </div>
+        <div class="input-group">
+            <label>Tedarikçi Firma:</label>
+            <input type="text" id="supplierName" value="Lezita / Şenpiliç">
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="tab-buttons">
+            <button class="tab-btn active" id="tabPasteBtn" onclick="switchTab('paste')">📋 Metin / Okuyucu</button>
+            <button class="tab-btn" id="tabCamBtn" onclick="switchTab('cam')">📷 Kamera İle Tara</button>
+        </div>
+
+        <div id="pasteSection">
+            <div class="textarea-wrapper">
+                <textarea id="barcodeInput" placeholder="Barkod geçmişini buraya yapıştırın veya el okuyucu ile okutun..."></textarea>
+                <button class="clear-icon-btn" onclick="clearAll()" title="Sıfırla">✕</button>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="processBarcodes()">
+                    ⚡ HESAPLA
+                </button>
+                <button class="btn btn-danger" onclick="clearAll()">
+                    🗑️ Hepsini Sil
+                </button>
+            </div>
+            <div class="btn-group" style="margin-top: 8px;">
+                <button class="btn btn-whatsapp" onclick="shareWhatsAppSummary()">
+                    📲 WhatsApp Gönder
+                </button>
+                <button class="btn btn-save" onclick="saveCurrentToApp()">
+                    💾 Geçmişe Kaydet
+                </button>
+            </div>
+        </div>
+
+        <div id="camSection" style="display: none;">
+            <div id="reader"></div>
+            <p style="font-size: 0.75rem; color: #6c757d; text-align: center; margin-top: 6px;">
+                Kamerayı koli üzerindeki barkoda doğrultun.
+            </p>
+        </div>
+    </div>
+
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-title">Toplam Koli</div>
+            <div class="kpi-value" id="kpiCount">0</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-title">Çeşit Sayısı</div>
+            <div class="kpi-value" id="kpiTypes">0</div>
+        </div>
+        <div class="kpi-card total">
+            <div class="kpi-title">TOPLAM NET AĞIRLIK</div>
+            <div class="kpi-value" id="kpiTotalKg">0.000 kg</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title" style="margin-bottom:10px;">
+            <strong>📦 Ürün Kırılımı</strong>
+        </div>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Ürün Cinsi</th>
+                        <th>Koli</th>
+                        <th>SKT</th>
+                        <th style="text-align: right;">Toplam Kg</th>
+                    </tr>
+                </thead>
+                <tbody id="productSummaryBody">
+                    <tr><td colspan="4" style="text-align:center; color:#adb5bd;">Henüz veri yok.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title" style="margin-bottom:10px;">
+            <strong>📄 Koli Detay Listesi</strong>
+        </div>
+        <div style="overflow-x: auto; max-height: 250px;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Barkod</th>
+                        <th>Ürün Cinsi</th>
+                        <th>SKT</th>
+                        <th style="text-align: right;">Kg</th>
+                    </tr>
+                </thead>
+                <tbody id="detailTableBody">
+                    <tr><td colspan="5" style="text-align:center; color:#adb5bd;">Henüz koli okutulmadı.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Uygulama İçi Kayıt Geçmişi Bölümü -->
+    <div class="card">
+        <div class="card-title" style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+            <strong>📜 Geçmiş Mal Kabul Kayıtları</strong>
+            <button class="btn btn-secondary" style="padding:4px 8px; font-size:0.7rem;" onclick="clearSavedHistory()">Tümünü Temizle</button>
+        </div>
+        <div id="savedHistoryContainer">
+            <p style="text-align:center; color:#adb5bd; font-size:0.85rem;">Henüz kaydedilmiş kayıt yok.</p>
+        </div>
+    </div>
+
+    <div class="modal" id="productModal">
+        <div class="modal-content">
+            <h3 style="margin-top:0;">Ürün Kodu Eşleştirme (PLU)</h3>
+            <p style="font-size:0.75rem; color:#6c757d;">Barkoddaki 5 haneli koda denk gelen ürün adını girin.</p>
+            <div id="productListContainer"></div>
+            <button class="btn btn-primary" style="width:100%; margin-top:10px;" onclick="addNewProductRow()">+ Yeni Kod Ekle</button>
+            <div class="btn-group" style="margin-top:10px;">
+                <button class="btn btn-primary" onclick="saveProducts()">Kaydet</button>
+                <button class="btn btn-secondary" onclick="closeProductModal()">Kapat</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function playBeepSound() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                oscillator.type = 'sine';
+                oscillator.frequency.value = 1800;
+                gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                oscillator.start();
+                setTimeout(() => {
+                    oscillator.stop();
+                    audioCtx.close();
+                }, 120);
+            } catch (e) {
+                console.log("Ses çalınamadı", e);
+            }
+
+            if ("vibrate" in navigator) {
+                navigator.vibrate(100);
+            }
+        }
+
+        let defaultProducts = {
+            "13440": "Dökme Parça Tavuk",
+            "14356": "Dökme Göğüs / Fileto",
+            "13437": "Dökme Kanat / Kelebek",
+            "13377": "Dökme Ciğer / Taşlık",
+            "13378": "Dökme İncik / But"
+        };
+
+        let productCatalog = JSON.parse(localStorage.getItem("halis_product_catalog")) || defaultProducts;
+        let currentProductSummary = {}; 
+
+        const today = new Date();
+        today.setDate(today.getDate() + 10);
+        document.getElementById("defaultSktDate").value = today.toISOString().split('T')[0];
+
+        let html5QrcodeScanner = null;
+        let scannedBarcodesSet = new Set();
+
+        function switchTab(tab) {
+            if (tab === 'paste') {
+                document.getElementById('pasteSection').style.display = 'block';
+                document.getElementById('camSection').style.display = 'none';
+                document.getElementById('tabPasteBtn').classList.add('active');
+                document.getElementById('tabCamBtn').classList.remove('active');
+                if (html5QrcodeScanner) {
+                    html5QrcodeScanner.stop().then(() => html5QrcodeScanner.clear()).catch(()=>{});
+                }
+            } else {
+                document.getElementById('pasteSection').style.display = 'none';
+                document.getElementById('camSection').style.display = 'block';
+                document.getElementById('tabCamBtn').classList.add('active');
+                document.getElementById('tabPasteBtn').classList.remove('active');
+                startCamera();
+            }
+        }
+
+        function startCamera() {
+            document.getElementById('reader').style.display = 'block';
+            html5QrcodeScanner = new Html5Qrcode("reader");
+            html5QrcodeScanner.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 250, height: 150 } },
+                (decodedText) => {
+                    let match = decodedText.match(/\b(27|28|29)\d{11}\b/);
+                    let barcode = match ? match[0] : decodedText;
+
+                    if (!scannedBarcodesSet.has(barcode)) {
+                        scannedBarcodesSet.add(barcode);
+                        playBeepSound();
+                        
+                        let textarea = document.getElementById("barcodeInput");
+                        textarea.value += decodedText + "\n";
+                        processBarcodes();
+                    }
+                },
+                (errorMessage) => {}
+            ).catch(err => {
+                alert("Kamera erişim izni verilemedi veya tarayıcı desteklemiyor.");
+            });
+        }
+
+        function parseGS1Skt(rawLine) {
+            let match = rawLine.match(/\b(15|17)(\d{2})(\d{2})(\d{2})\b/);
+            if (match) {
+                let yy = match[2];
+                let mm = match[3];
+                let dd = match[4];
+                return `${dd}.${mm}.20${yy}`;
+            }
+            return null;
+        }
+
+        function processBarcodes() {
+            let input = document.getElementById("barcodeInput").value;
+            let lines = input.split("\n");
+            
+            let totalWeight = 0;
+            let totalCount = 0;
+            let productSummary = {};
+            let details = [];
+
+            let defaultSkt = document.getElementById("defaultSktDate").value;
+            let formattedDefaultSkt = defaultSkt ? formatDate(defaultSkt) : "Belirtilmedi";
+
+            let seenInBatch = new Set();
+
+            lines.forEach(line => {
+                let match = line.match(/\b(27|28|29)\d{11}\b/);
+                if (match) {
+                    let barcode = match[0];
+
+                    if (!seenInBatch.has(barcode)) {
+                        seenInBatch.add(barcode);
+                        scannedBarcodesSet.add(barcode);
+
+                        let plu = barcode.substring(2, 7);
+                        let weightGrams = parseInt(barcode.substring(7, 12));
+                        let weightKg = weightGrams / 1000.0;
+
+                        let detectedSkt = parseGS1Skt(line) || formattedDefaultSkt;
+                        let productName = productCatalog[plu] || ("Ürün #" + plu);
+
+                        totalWeight += weightKg;
+                        totalCount++;
+
+                        if (!productSummary[plu]) {
+                            productSummary[plu] = {
+                                name: productName,
+                                count: 0,
+                                weight: 0,
+                                skt: detectedSkt
+                            };
+                        }
+                        productSummary[plu].count++;
+                        productSummary[plu].weight += weightKg;
+
+                        details.push({
+                            barcode: barcode,
+                            name: productName,
+                            weight: weightKg,
+                            skt: detectedSkt
+                        });
+                    }
+                }
+            });
+
+            currentProductSummary = productSummary;
+
+            document.getElementById("kpiCount").innerText = totalCount;
+            document.getElementById("kpiTypes").innerText = Object.keys(productSummary).length;
+            document.getElementById("kpiTotalKg").innerText = totalWeight.toFixed(3) + " kg";
+
+            let summaryHtml = "";
+            if (Object.keys(productSummary).length === 0) {
+                summaryHtml = `<tr><td colspan="4" style="text-align:center; color:#adb5bd;">Ağırlık içeren geçerli (27/28/29) EAN-13 barkodu bulunamadı.</td></tr>`;
+            } else {
+                for (let plu in productSummary) {
+                    let p = productSummary[plu];
+                    summaryHtml += `
+                        <tr>
+                            <td><b>${p.name}</b> <br><small style="color:#6c757d;">Kod: ${plu}</small></td>
+                            <td><span class="badge">${p.count} Koli</span></td>
+                            <td><small>${p.skt}</small></td>
+                            <td style="text-align: right; font-weight: bold; color:#2d6a4f;">${p.weight.toFixed(3)} kg</td>
+                        </tr>
+                    `;
+                }
+            }
+            document.getElementById("productSummaryBody").innerHTML = summaryHtml;
+
+            let detailHtml = "";
+            if (details.length === 0) {
+                detailHtml = `<tr><td colspan="5" style="text-align:center; color:#adb5bd;">Henüz koli okutulmadı.</td></tr>`;
+            } else {
+                details.forEach((d, idx) => {
+                    detailHtml += `
+                        <tr>
+                            <td>${idx + 1}</td>
+                            <td><code style="font-size:0.75rem;">${d.barcode}</code></td>
+                            <td>${d.name}</td>
+                            <td><small>${d.skt}</small></td>
+                            <td style="text-align: right; font-weight: bold;">${d.weight.toFixed(3)} kg</td>
+                        </tr>
+                    `;
+                });
+            }
+            document.getElementById("detailTableBody").innerHTML = detailHtml;
+        }
+
+        // WhatsApp Mesaj Tasarımı (Ekran görüntüsündeki gibi sadeleştirildi)
+        function shareWhatsAppSummary() {
+            let count = document.getElementById("kpiCount").innerText;
+
+            if (parseInt(count) === 0) {
+                alert("Henüz okutulmuş koli verisi yok!");
+                return;
+            }
+
+            let text = buildWhatsAppText(currentProductSummary);
+            let url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+            window.open(url, '_blank');
+        }
+
+        function buildWhatsAppText(summaryObj) {
+            let text = `📦 *Gelen Mal*\n`;
+            text += `📅 Tarih: ${new Date().toLocaleDateString('tr-TR')}\n`;
+            text += `------------------------------------\n`;
+
+            for (let plu in summaryObj) {
+                let p = summaryObj[plu];
+                text += `• *${p.name}*: ${p.count} Koli | *${p.weight.toFixed(3)} kg*\n`;
+            }
+
+            return text;
+        }
+
+        // Uygulama İçi Kaydetme Mantığı (Save)
+        function saveCurrentToApp() {
+            let count = document.getElementById("kpiCount").innerText;
+            if (parseInt(count) === 0) {
+                alert("Kaydedilecek koli verisi yok!");
+                return;
+            }
+
+            let savedRecords = JSON.parse(localStorage.getItem("halis_saved_records")) || [];
+            let newRecord = {
+                id: Date.now(),
+                timestamp: new Date().toLocaleString('tr-TR'),
+                supplier: document.getElementById("supplierName").value,
+                count: count,
+                totalKg: document.getElementById("kpiTotalKg").innerText,
+                summary: currentProductSummary
+            };
+
+            savedRecords.unshift(newRecord);
+            localStorage.setItem("halis_saved_records", JSON.stringify(savedRecords));
+
+            renderSavedHistory();
+            alert("Kayıt başarıyla saklandı!");
+        }
+
+        function renderSavedHistory() {
+            let savedRecords = JSON.parse(localStorage.getItem("halis_saved_records")) || [];
+            let container = document.getElementById("savedHistoryContainer");
+
+            if (savedRecords.length === 0) {
+                container.innerHTML = `<p style="text-align:center; color:#adb5bd; font-size:0.85rem;">Henüz kaydedilmiş kayıt yok.</p>`;
+                return;
+            }
+
+            let html = "";
+            savedRecords.forEach(rec => {
+                let summaryItems = "";
+                for (let plu in rec.summary) {
+                    let item = rec.summary[plu];
+                    summaryItems += `<div>• ${item.name}: <b>${item.count} Koli</b> (${item.weight.toFixed(3)} kg)</div>`;
+                }
+
+                html += `
+                    <div class="saved-card">
+                        <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:#6c757d; margin-bottom:4px;">
+                            <span>🕒 ${rec.timestamp}</span>
+                            <span>🏢 ${rec.supplier}</span>
+                        </div>
+                        <div style="font-size:0.85rem; margin-bottom:6px;">
+                            ${summaryItems}
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #e9ecef; padding-top:4px;">
+                            <span style="font-size:0.75rem; font-weight:bold;">Toplam: ${rec.count} Koli / ${rec.totalKg}</span>
+                            <div style="display:flex; gap:4px;">
+                                <button class="btn btn-whatsapp" style="padding:4px 8px; font-size:0.7rem;" onclick="shareSavedWhatsApp(${rec.id})">📲 WhatsApp</button>
+                                <button class="btn btn-danger" style="padding:4px 8px; font-size:0.7rem;" onclick="deleteSavedRecord(${rec.id})">🗑️ Sil</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function shareSavedWhatsApp(id) {
+            let savedRecords = JSON.parse(localStorage.getItem("halis_saved_records")) || [];
+            let record = savedRecords.find(r => r.id === id);
+            if (record) {
+                let text = buildWhatsAppText(record.summary);
+                let url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+                window.open(url, '_blank');
+            }
+        }
+
+        function deleteSavedRecord(id) {
+            let savedRecords = JSON.parse(localStorage.getItem("halis_saved_records")) || [];
+            savedRecords = savedRecords.filter(r => r.id !== id);
+            localStorage.setItem("halis_saved_records", JSON.stringify(savedRecords));
+            renderSavedHistory();
+        }
+
+        function clearSavedHistory() {
+            if (confirm("Tüm kayıt geçmişini silmek istediğinize emin misiniz?")) {
+                localStorage.removeItem("halis_saved_records");
+                renderSavedHistory();
+            }
+        }
+
+        function clearAll() {
+            document.getElementById("barcodeInput").value = "";
+            scannedBarcodesSet.clear();
+            currentProductSummary = {};
+            document.getElementById("kpiCount").innerText = "0";
+            document.getElementById("kpiTypes").innerText = "0";
+            document.getElementById("kpiTotalKg").innerText = "0.000 kg";
+            document.getElementById("productSummaryBody").innerHTML = `<tr><td colspan="4" style="text-align:center; color:#adb5bd;">Henüz veri yok.</td></tr>`;
+            document.getElementById("detailTableBody").innerHTML = `<tr><td colspan="5" style="text-align:center; color:#adb5bd;">Henüz koli okutulmadı.</td></tr>`;
+        }
+
+        function formatDate(dateStr) {
+            let parts = dateStr.split("-");
+            if (parts.length === 3) {
+                return `${parts[2]}.${parts[1]}.${parts[0]}`;
+            }
+            return dateStr;
+        }
+
+        function openProductModal() {
+            let container = document.getElementById("productListContainer");
+            container.innerHTML = "";
+            for (let plu in productCatalog) {
+                container.appendChild(createProductRow(plu, productCatalog[plu]));
+            }
+            document.getElementById("productModal").style.display = "flex";
+        }
+
+        function closeProductModal() {
+            document.getElementById("productModal").style.display = "none";
+        }
+
+        function createProductRow(plu = "", name = "") {
+            let div = document.createElement("div");
+            div.className = "product-edit-item";
+            div.innerHTML = `
+                <input type="text" class="plu-input" placeholder="PLU (5 Hane)" value="${plu}">
+                <input type="text" class="name-input" placeholder="Ürün Adı" value="${name}">
+                <button style="border:none; background:#d90429; color:white; border-radius:4px; padding:0 8px; cursor:pointer;" onclick="this.parentElement.remove()">✕</button>
+            `;
+            return div;
+        }
+
+        function addNewProductRow() {
+            document.getElementById("productListContainer").appendChild(createProductRow());
+        }
+
+        function saveProducts() {
+            let rows = document.querySelectorAll(".product-edit-item");
+            let newCatalog = {};
+            rows.forEach(row => {
+                let plu = row.querySelector(".plu-input").value.trim();
+                let name = row.querySelector(".name-input").value.trim();
+                if (plu && name) {
+                    newCatalog[plu] = name;
+                }
+            });
+            productCatalog = newCatalog;
+            localStorage.setItem("halis_product_catalog", JSON.stringify(productCatalog));
+            closeProductModal();
+            processBarcodes();
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                const splash = document.getElementById('splash-screen');
+                if (splash) {
+                    splash.style.opacity = '0';
+                    setTimeout(() => splash.style.display = 'none', 500);
+                }
+            }, 3000);
+
+            renderSavedHistory();
+
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(() => console.log('SW Başarılı'))
+                    .catch(err => console.log('SW Hata:', err));
+            }
+        });
+    </script>
+</body>
+</html>
