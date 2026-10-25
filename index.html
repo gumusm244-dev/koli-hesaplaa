@@ -781,13 +781,11 @@
                 }
             }, 3000);
 
-            // Chrome PWA Yükleme Desteği (Service Worker Entegrasyonu)
+            // Chrome PWA Yükleme Desteği (Harici Service Worker Bağlantısı)
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('data:text/javascript;charset=utf-8,' + encodeURIComponent(`
-                    self.addEventListener('install', (e) => self.skipWaiting());
-                    self.addEventListener('activate', (e) => self.clients.claim());
-                    self.addEventListener('fetch', (e) => e.respondWith(fetch(e.request)));
-                `)).catch(err => console.log('SW Hata:', err));
+                navigator.serviceWorker.register('./sw.js')
+                    .then(() => console.log('SW Başarılı'))
+                    .catch(err => console.log('SW Hata:', err));
             }
         });
     </script>
