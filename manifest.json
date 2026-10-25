@@ -1,24 +1,24 @@
 {
   "name": "Tavukçu Halis",
   "short_name": "Tavukçu Halis",
-  "start_url": "/koli-hesaplaa/",
-  "scope": "/koli-hesaplaa/",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#1a1a1a",
   "theme_color": "#d90429",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "logo.jpg",
+      "src": "./logo.jpg",
       "sizes": "192x192",
-      "type": "image/jpg",
-      "purpose": "any"
+      "type": "image/jpeg",
+      "purpose": "any maskable"
     },
     {
-      "src": "logo.jpg",
+      "src": "./logo.jpg",
       "sizes": "512x512",
-      "type": "image/jpg",
-      "purpose": "any"
+      "type": "image/jpeg",
+      "purpose": "any maskable"
     }
   ]
 }
